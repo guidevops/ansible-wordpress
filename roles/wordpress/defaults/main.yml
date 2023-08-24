@@ -1,0 +1,21 @@
+---
+wordpress_enabled: false
+wordpress_available_externally: 'false'
+wordpress_deploy_name: wordpress
+wordpress_hostname: "wordpress"
+
+
+# directories
+wordpress_data_directory: "{{ docker_home }}/{{ wordpress_deploy_name }}_wordpress"
+
+# specs
+wordpress_memory: 1g
+
+
+wordpress_container_name: "{{ wordpress_deploy_name }}_wordpress"
+wordpress_container_db_name: "{{ wordpress_deploy_name }}_wordpress_db"
+
+wordpress_db_name: wordpress
+wordpress_db_user: wordpress
+wordpress_db_password: wordpress
+wordpress_db_host: "{{ wordpress_container_db_name }}"

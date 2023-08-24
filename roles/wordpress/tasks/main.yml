@@ -1,0 +1,57 @@
+---
+- name: Create Wordpress Directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ wordpress_data_directory }}/html"
+    - "{{ wordpress_data_directory }}/db"
+
+- name: "Cria a rede privada no Docker Swarm"
+  docker_network:
+    name: "wordpress-internal"
+    driver: "bridge"
+    state: "present"
+    internal: true
+    attachable: true
+
+
+- name: DB Docker Container
+  docker_container:
+    name: "{{ wordpress_container_db_name }}"
+    image: mysql:8.1.0
+    pull: true
+    env:
+      MYSQL_DATABASE: "{{ wordpress_db_name }}"
+      MYSQL_USER: "{{ wordpress_db_user }}"
+      MYSQL_PASSWORD: "{{ wordpress_db_password }}"
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    volumes:
+      - "{{ wordpress_data_directory }}/db:/var/lib/mysql:rw"
+    restart_policy: unless-stopped
+    networks:
+      - name: wordpress-internal 
+
+
+- name: Wordpress Docker Container
+  docker_container:
+    name: "{{ wordpress_container_name }}"
+    image: wordpress
+    volumes:
+      - "{{ wordpress_data_directory }}/html:/var/www/html:rw"
+    restart_policy: unless-stopped
+    env:
+      WORDPRESS_DB_HOST: "{{ wordpress_db_host }}"
+      WORDPRESS_DB_USER: "{{ wordpress_db_user }}"
+      WORDPRESS_DB_PASSWORD: "{{ wordpress_db_password }}"
+      WORDPRESS_DB_NAME: "{{ wordpress_db_name }}"
+    networks:
+      - name: traefik-public    
+      - name: wordpress-internal
+    labels:
+      traefik.enable: "{{ wordpress_available_externally | string }}"
+      traefik.http.routers.wordpress.rule: "Host(`{{ wordpress_hostname }}.{{ ansible_nas_domain }}`)"
+      traefik.http.routers.wordpress.tls.certresolver: "cloudflare"
+      traefik.http.routers.wordpress.tls.domains[0].main: "{{ ansible_nas_domain }}"
+      traefik.http.routers.wordpress.tls.domains[0].sans: "*.{{ ansible_nas_domain }}"
+      traefik.http.services.wordpress.loadbalancer.server.port: "80"

@@ -1,0 +1,8 @@
+---
+- hosts: all
+
+  roles:
+    - role: wordpress
+      tags:
+        - wordpress
+      when: (wordpress_enabled | default(False))      
